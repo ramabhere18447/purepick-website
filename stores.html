@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PurePick — Stores</title>
+
+  <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/833/833314.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body { background: #f4fbff; }
+    .rest-card img { height:140px; object-fit:cover; border-radius:6px; }
+    .rating { color:#ffb703; font-weight:600; }
+  </style>
+</head>
+
+<!-- Cart Modal -->
+<div class="modal fade" id="cartModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Your Cart</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-bordered text-center">
+          <thead class="table-dark">
+            <tr>
+              <th>Item</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Total</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="cart-items"></tbody>
+        </table>
+        <h4>Total: ₹<span id="cart-total">0</span></h4>
+      </div>
+      <div class="modal-footer">
+        <a href="bills.html" class="btn btn-danger">Proceed to Checkout</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let cart = [];
+
+function addToCart(name, price) {
+  let item = cart.find(i => i.name === name);
+  if(item){
+    item.qty++;
+    item.total = item.qty * item.price;
+  } else {
+    cart.push({name: name, price: price, qty: 1, total: price});
+  }
+  updateCart();
+}
+
+function removeFromCart(name) {
+  cart = cart.filter(i => i.name !== name);
+  updateCart();
+}
+
+function updateQty(name, delta) {
+  let item = cart.find(i => i.name === name);
+  if (!item) return;
+  item.qty += delta;
+  if (item.qty < 1) item.qty = 1;
+  item.total = item.qty * item.price;
+  updateCart();
+}
+
+function updateCart() {
+  const tbody = document.getElementById('cart-items');
+  tbody.innerHTML = '';
+  let total = 0;
+
+  cart.forEach(item => {
+    total += item.total;
+    tbody.innerHTML += `
+      <tr>
+        <td>${item.name}</td>
+        <td>
+          <div class="d-flex justify-content-center align-items-center">
+            <button class="btn btn-sm btn-outline-secondary me-1" onclick="updateQty('${item.name}', -1)">−</button>
+            <span class="px-2">${item.qty}</span>
+            <button class="btn btn-sm btn-outline-secondary ms-1" onclick="updateQty('${item.name}', 1)">+</button>
+          </div>
+        </td>
+        <td>₹${item.price}</td>
+        <td>₹${item.total}</td>
+        <td><button class="btn btn-danger btn-sm" onclick="removeFromCart('${item.name}')">Remove</button></td>
+      </tr>`;
+  });
+
+  document.getElementById('cart-total').innerText = total;
+  const cartCount = document.getElementById('cart-count');
+  if (cartCount) cartCount.innerText = cart.length;
+}
+
+window.addEventListener('beforeunload', () => {
+  localStorage.setItem('cart', JSON.stringify(cart));
+});
+
+window.addEventListener('load', () => {
+  let savedCart = localStorage.getItem('cart');
+  if(savedCart) cart = JSON.parse(savedCart);
+  updateCart();
+});
+</script>
+
+
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-danger sticky-top">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="index.html">
+        <img src="https://cdn-icons-png.flaticon.com/512/833/833314.png" width="28" height="28" alt="logo"> PurePick
+      </a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navRest">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navRest">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="products.html">Products</a></li>
+          <li class="nav-item"><a class="nav-link active" href="stores.html">Stores</a></li>
+          <li class="nav-item"><a class="nav-link" href="deals.html">Deals</a></li>
+          <li class="nav-item"><a class="nav-link" href="enquiry.html">Contact</a></li>
+          <li class="nav-item">
+            <button class="btn btn-warning" type="button" data-bs-toggle="modal" data-bs-target="#cartModal">
+              🛒 Cart (<span id="cart-count">0</span>)
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Filter Row -->
+  <main class="container py-4">
+    <div class="row g-3 mb-3 align-items-center">
+      <!-- Filter Dropdown -->
+      <div class="col-12 col-md-3">
+        <select class="form-select" id="typeFilter">
+          <option>Store Type: All</option>
+          <option>Organic</option>
+          <option>Local Market</option>
+          <option>SuperSaver</option>
+          <option>Express Delivery</option>
+        </select>
+      </div>
+
+      <!-- Sort Dropdown -->
+      <div class="col-12 col-md-3">
+        <select class="form-select" id="sortFilter">
+          <option>Sort By</option>
+          <option>Rating: High to Low</option>
+          <option>Delivery Time: Fastest First</option>
+          <option>Cost: Low to High</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Stores Grid -->
+    <div class="row g-3" id="restaurantsGrid">
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Local Market" data-rating="4.4" data-delivery="30" data-cost="200">
+          <img src="C:\STQA\images\store1.jpeg?grocery,local" alt="R1" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">Fresh Basket <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Local Market • 25–35 mins • Min. Order ₹200</p>
+            <p class="mb-1">Rating: <span class="rating">4.4 ★</span></p>
+             <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="Fresh Basket">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="SuperSaver" data-rating="4.1" data-delivery="35" data-cost="150">
+          <img src="C:\STQA\images\store2.jpeg?supermarket" alt="R2" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">SuperSaver Store <span class="badge bg-secondary ms-2">Closed</span></h5>
+            <p class="mb-1 text-muted">SuperSaver • 30–40 mins • Min. Order ₹150</p>
+            <p class="mb-1">Rating: <span class="rating">4.1 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="SuperSaver Store">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Express Delivery" data-rating="4.5" data-delivery="20" data-cost="180">
+          <img src="C:\STQA\images\store3.jpeg?delivery,grocery" alt="R3" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">QuickCart Grocery <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Express Delivery • 15–25 mins • Min. Order ₹180</p>
+            <p class="mb-1">Rating: <span class="rating">4.5 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="Express Delivery">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Organic" data-rating="4.7" data-delivery="25" data-cost="250">
+          <img src="C:\STQA\images\store4.jpeg?organic,store" alt="R4" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">Nature’s Harvest <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Organic • 20–30 mins • Min. Order ₹250</p>
+            <p class="mb-1">Rating: <span class="rating">4.7 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="Nature’s Harvest">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Organic" data-rating="4.6" data-delivery="30" data-cost="230">
+          <img src="C:\STQA\images\store5.jpeg?grocery,organic" alt="R5" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">The Organic Hub <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Organic • 25–35 mins • Min. Order ₹230</p>
+            <p class="mb-1">Rating: <span class="rating">4.6 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="The Organic Hub">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Local Market" data-rating="4.3" data-delivery="28" data-cost="190">
+          <img src="C:\STQA\images\store6.jpeg?market,grocery" alt="R6" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">DailyMart <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Local Market • 20–30 mins • Min. Order ₹190</p>
+            <p class="mb-1">Rating: <span class="rating">4.3 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="DailyMart">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Organic" data-rating="4.8" data-delivery="22" data-cost="260">
+          <img src="C:\STQA\images\store7.jpeg?organic,fruits" alt="R7" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">GreenGrocer <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Organic • 20–25 mins • Min. Order ₹260</p>
+            <p class="mb-1">Rating: <span class="rating">4.8 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="GreenGrocer">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div class="col-md-6">
+        <div class="d-flex gap-3 p-3 bg-white shadow-sm rest-card align-items-center" 
+             data-type="Organic" data-rating="4.5" data-delivery="27" data-cost="210">
+          <img src="C:\STQA\images\store8.jpeg?healthy,grocery" alt="R8" width="180" class="rounded">
+          <div>
+            <h5 class="mb-1">Healthy Choice <span class="badge bg-success ms-2">Open</span></h5>
+            <p class="mb-1 text-muted">Organic • 25–30 mins • Min. Order ₹210</p>
+            <p class="mb-1">Rating: <span class="rating">4.5 ★</span></p>
+            <div class="d-flex gap-2">
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#restModal" data-name="Healthy Choice ">View Products</button>
+          <a class="btn btn-danger btn-sm" href="#">Order</a>
+           </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+ <!-- Restaurant details modal -->
+  <div class="modal fade" id="restModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="restModalLabel">Store</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div id="restInfo" class="mb-3">
+            <img id="restImg" src="https://source.unsplash.com/900x300/?food,restaurant" class="img-fluid rounded mb-3" alt="">
+            <p id="restDesc">Stores details and sample products will appear here.</p>
+          </div>
+          <div class="list-group">
+            <a href="#" class="list-group-item list-group-item-action">Organic Apples — ₹150/kg </a>
+            <a href="#" class="list-group-item list-group-item-action">Free-range Eggs — ₹70/6pcs </a>
+            <a href="#" class="list-group-item list-group-item-action">Fresh Milk — ₹55/L </a>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button class="btn btn-danger">Order from here</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Filter by store type
+    document.getElementById("typeFilter").addEventListener("change", function() {
+      const selectedType = this.value.replace("Store Type: ", "");
+      const cards = document.querySelectorAll("#restaurantsGrid .col-md-6");
+      cards.forEach(card => {
+        const type = card.querySelector(".rest-card").getAttribute("data-type");
+        if (selectedType === "All" || selectedType === "Store Type: All" || selectedType === type)
+          card.style.display = "block";
+        else
+          card.style.display = "none";
+      });
+    });
+
+    // Sort by rating, delivery, or cost
+    document.getElementById("sortFilter").addEventListener("change", function() {
+      const sortBy = this.value;
+      const grid = document.getElementById("restaurantsGrid");
+      const items = Array.from(grid.children);
+
+      items.sort((a, b) => {
+        const cardA = a.querySelector(".rest-card");
+        const cardB = b.querySelector(".rest-card");
+        const ratingA = parseFloat(cardA.dataset.rating);
+        const ratingB = parseFloat(cardB.dataset.rating);
+        const deliveryA = parseFloat(cardA.dataset.delivery);
+        const deliveryB = parseFloat(cardB.dataset.delivery);
+        const costA = parseFloat(cardA.dataset.cost);
+        const costB = parseFloat(cardB.dataset.cost);
+
+        if (sortBy.includes("Rating")) return ratingB - ratingA;
+        if (sortBy.includes("Delivery")) return deliveryA - deliveryB;
+        if (sortBy.includes("Cost")) return costA - costB;
+        return 0;
+      });
+
+      // Re-append sorted items
+      items.forEach(item => grid.appendChild(item));
+    });
+  </script>
+</body>
+</html>
